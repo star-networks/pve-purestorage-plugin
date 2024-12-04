@@ -1,0 +1,19 @@
+Source: libpve-storage-purestorage-perl
+Section: perl
+Priority: optional
+Maintainer: Timur Kumakbayev <timansky@neko.kz>
+Standards-Version: 4.6.0
+Homepage: https://github.com/kolesa-team/pve-purestorage-plugin/blob/main/README.md
+Vcs-Browser: https://github.com/kolesa-team/pve-purestorage-plugin
+Vcs-Git: https://github.com/kolesa-team/pve-purestorage-plugin.git
+Build-Depends: debhelper, devscripts
+
+Package: libpve-storage-purestorage-perl
+Architecture: all
+Depends: ${perl:Depends}, ${misc:Depends}, libpve-storage-perl (>= 8.2.1), multipath-tools
+Description: Pure Storage integration library for Proxmox VE
+ This package provides a Perl library to integrate Pure FlashArray Storage systems
+ with the Proxmox VE storage management infrastructure.
+ .
+ It allows administrators to configure and manage Pure FlashArray Storage devices
+ directly within the Proxmox VE environment.

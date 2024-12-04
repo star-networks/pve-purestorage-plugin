@@ -1,0 +1,11 @@
+debian/.debhelper
+debian/changelog
+debian/debhelper-build-stamp
+debian/libpve-storage-purestorage-perl
+debian/files
+debian/package
+debian/tmp
+/*.buildinfo
+/*.deb
+*.log
+*.substvars
