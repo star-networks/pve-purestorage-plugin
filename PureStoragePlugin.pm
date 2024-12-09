@@ -222,7 +222,7 @@ sub purestorage_get_auth_token {
 sub purestorage_volume_info {
   my ( $class, $scfg, $volname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_volume_info\n" if $DEBUG;
-  my $vgname = $scfg->{ vgname } || die "Error: Volume group name is not defined.\n";
+  my $vgname = $scfg->{ vgname } || die "Error :: Volume group name is not defined.\n";
 
   my $filter   = "name='$vgname/$volname'";
   my $response = $class->purestorage_request( $scfg, "volumes", "GET", "filter=" . uri_escape( $filter ) );
@@ -252,7 +252,7 @@ sub purestorage_volume_info {
 sub purestorage_list_volumes {
   my ( $class, $scfg, $vmid, $storeid, $destroyed ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_list_volumes\n" if $DEBUG;
-  my $vgname = $scfg->{ vgname } || die "Error: Volume group name is not defined.\n";
+  my $vgname = $scfg->{ vgname } || die "Error :: Volume group name is not defined.\n";
   $class->assert_multipath_support();
 
   my $filter;
@@ -380,8 +380,8 @@ sub purestorage_volume_connection {
 
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_volume_connection :: $action\n" if $DEBUG;
 
-  my $vgname = $scfg->{ vgname }  || die "Error: Volume group name is not defined.\n";
-  my $url    = $scfg->{ address } || die "Error: Pure Storage host is not defined.\n";
+  my $vgname = $scfg->{ vgname }  || die "Error :: Volume group name is not defined.\n";
+  my $url    = $scfg->{ address } || die "Error :: Pure Storage host is not defined.\n";
   my $hname  = PVE::INotify::nodename() . "-" . $scfg->{ hgsuffix };
 
   my $params   = "host_names=$hname&volume_names=$vgname/$volname";
@@ -417,9 +417,9 @@ sub purestorage_volume_connection {
   }
 
   if ( $action eq "DELETE" ) {
-    print "Volume '$volname' successfully removed from host '$hname'.\n";
+    print "Info :: Volume '$volname' successfully removed from host '$hname'.\n";
   }
-  print "Volume '$volname' successfully added to host '$hname'.\n";
+  print "Info :: Volume '$volname' successfully added to host '$hname'.\n";
   return 1;
 }
 
@@ -429,8 +429,8 @@ sub purestorage_create_volume {
 
   $class->assert_multipath_support();
 
-  my $vgname = $scfg->{ vgname }  || die "Error: Volume group name is not defined.\n";
-  my $url    = $scfg->{ address } || die "Error: Pure Storage host is not defined.\n";
+  my $vgname = $scfg->{ vgname }  || die "Error :: Volume group name is not defined.\n";
+  my $url    = $scfg->{ address } || die "Error :: Pure Storage host is not defined.\n";
 
   my $hname = PVE::INotify::nodename() . "-" . $scfg->{ hgsuffix };
 
@@ -439,7 +439,7 @@ sub purestorage_create_volume {
   my $serial;
   my $response;
 
-  print "Step: Create the volume.\n";
+  print "Info :: Step: Create the volume.\n";
   $params    = "names=$vgname/$volname";
   $volparams = { "provisioned" => $size };
 
@@ -453,8 +453,8 @@ sub purestorage_create_volume {
       . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
   }
 
-  $serial = $response->{ content }->{ items }->[0]->{ serial } || die "Error: Failed to retrieve volume serial";
-  print "Volume '$volname' in Volume Group '$vgname' created successfully.\n";
+  $serial = $response->{ content }->{ items }->[0]->{ serial } || die "Error :: Failed to retrieve volume serial";
+  print "Info :: Volume '$volname' in Volume Group '$vgname' created successfully.\n";
 
   return 1;
 }
@@ -468,8 +468,8 @@ sub purestorage_remove_volume {
   $class->assert_blockdev_support();
   $class->assert_multipath_support();
 
-  my $vgname = $scfg->{ vgname }  || die "Error: Volume group name is not defined.\n";
-  my $url    = $scfg->{ address } || die "Error: Pure Storage host is not defined.\n";
+  my $vgname = $scfg->{ vgname }  || die "Error :: Volume group name is not defined.\n";
+  my $url    = $scfg->{ address } || die "Error :: Pure Storage host is not defined.\n";
 
   my $hname = PVE::INotify::nodename() . "-" . $scfg->{ hgsuffix };
   my ( undef, undef, $vmid ) = $class->parse_volname( $volname );
@@ -481,11 +481,11 @@ sub purestorage_remove_volume {
 
   my $running = PVE::QemuServer::check_running( $vmid );
   if ( $running ) {
-    print "Step: Deactivate volume '$volname'.\n";
+    print "Info :: Step: Deactivate volume '$volname'.\n";
     $class->deactivate_volume( $storeid, $scfg, $volname );
   }
 
-  print "Step: Remove the storage volume '$volname'.\n";
+  print "Info :: Step: Remove the storage volume '$volname'.\n";
 
   $params = "names=$vgname/$volname";
   my $body = { destroyed => \1 };
@@ -507,11 +507,11 @@ sub purestorage_remove_volume {
         . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
     }
   } else {
-    print "Volume '$volname' from volume group '$vgname' destroyed successfully.\n";
+    print "Info :: Volume '$volname' from volume group '$vgname' destroyed successfully.\n";
   }
 
   if ( $eradicate ) {
-    print "Step: Eradicate the storage volume.\n";
+    print "Info :: Step: Eradicate the storage volume.\n";
 
     $params = "names=$vgname/$volname";
 
@@ -524,7 +524,7 @@ sub purestorage_remove_volume {
         . $response->{ error } . "\n"
         . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
     } else {
-      print "Volume '$volname' from volume group '$vgname' eradicated successfully.\n";
+      print "Info :: Volume '$volname' from volume group '$vgname' eradicated successfully.\n";
     }
   }
 
@@ -542,7 +542,7 @@ sub purestorage_get_device_size {
     run_command( [ $cmd->{ "blockdev" }, "--getsize64", $path ], outfunc => sub { $size = $_[0]; } );
   };
   if ( $@ ) {
-    die "Error :: Cannot execute 'blockdev' command for '$path'. Error: $@\n";
+    die "Error :: Cannot execute 'blockdev' command for '$path'. Error :: $@\n";
   }
 
   print "Debug :: Detected size: $size\n" if $DEBUG;
@@ -554,8 +554,8 @@ sub purestorage_resize_volume {
   my ( $class, $scfg, $volname, $size ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_resize_volume\n" if $DEBUG;
 
-  my $vgname = $scfg->{ vgname }  || die "Error: Volume group name is not defined.\n";
-  my $url    = $scfg->{ address } || die "Error: Pure Storage host is not defined.\n";
+  my $vgname = $scfg->{ vgname }  || die "Error :: Volume group name is not defined.\n";
+  my $url    = $scfg->{ address } || die "Error :: Pure Storage host is not defined.\n";
   my $hname  = PVE::INotify::nodename() . "-" . $scfg->{ hgsuffix };
   my ( $path, undef, undef, $wwid ) = $class->filesystem_path( $scfg, $volname );
   my $params    = "names=$vgname/$volname";
@@ -600,8 +600,8 @@ sub purestorage_rename_volume {
   my ( $class, $scfg, $source_volname, $target_volname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_rename_volume\n" if $DEBUG;
 
-  my $vgname    = $scfg->{ vgname }  || die "Error: Volume group name is not defined.\n";
-  my $url       = $scfg->{ address } || die "Error: Pure Storage host is not defined.\n";
+  my $vgname    = $scfg->{ vgname }  || die "Error :: Volume group name is not defined.\n";
+  my $url       = $scfg->{ address } || die "Error :: Pure Storage host is not defined.\n";
   my $params    = "names=$vgname/$source_volname";
   my $volparams = { "name" => "$vgname/$target_volname" };
   my $response  = $class->purestorage_request( $scfg, "volumes", "PATCH", $params, $volparams );
@@ -614,7 +614,7 @@ sub purestorage_rename_volume {
       . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
   }
 
-  print "Volume '$source_volname' in volume group '$vgname' renamed to '$target_volname' successfully.\n";
+  print "Info :: Volume '$source_volname' in volume group '$vgname' renamed to '$target_volname' successfully.\n";
 
   return 1;
 }
@@ -623,7 +623,7 @@ sub purestorage_snap_volume_create {
   my ( $class, $scfg, $snap_name, $volname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_snap_volume_create\n" if $DEBUG;
 
-  my $vgname = $scfg->{ vgname } || die "Error: Volume group name is not defined.\n";
+  my $vgname = $scfg->{ vgname } || die "Error :: Volume group name is not defined.\n";
   my $params;
   my $response;
 
@@ -639,7 +639,7 @@ sub purestorage_snap_volume_create {
       . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
   }
 
-  print "Snapshot($snap_name) of Volume '$volname' in Volume Group $vgname successfully.\n";
+  print "Info :: Snapshot($snap_name) of Volume '$volname' in Volume Group $vgname successfully.\n";
   return 1;
 }
 
@@ -647,7 +647,7 @@ sub purestorage_snap_volume_rollback {
   my ( $class, $scfg, $snap_name, $volname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_snap_volume_rollback\n" if $DEBUG;
 
-  my $vgname = $scfg->{ vgname } || die "Error: Volume group name is not defined.\n";
+  my $vgname = $scfg->{ vgname } || die "Error :: Volume group name is not defined.\n";
   my $params;
   my $response;
   my $body;
@@ -665,7 +665,7 @@ sub purestorage_snap_volume_rollback {
       . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
   }
 
-  print "Snapshot($snap_name) of volume '$volname' in Volume Group '$vgname' restored succesfuly.\n";
+  print "Info :: Snapshot($snap_name) of volume '$volname' in Volume Group '$vgname' restored succesfuly.\n";
   return 1;
 }
 
@@ -673,7 +673,7 @@ sub purestorage_snap_volume_delete {
   my ( $class, $scfg, $snap_name, $volname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_snap_volume_delete\n" if $DEBUG;
 
-  my $vgname = $scfg->{ vgname } || die "Error: Volume group name is not defined.\n";
+  my $vgname = $scfg->{ vgname } || die "Error :: Volume group name is not defined.\n";
   my $params;
 
   my $response;
@@ -704,7 +704,7 @@ sub purestorage_snap_volume_delete {
     }
   }
 
-  print "Snapshot($snap_name) of volume '$volname' in Volume Group '$vgname' destroyed succesfuly.\n";
+  print "Info :: Snapshot($snap_name) of volume '$volname' in Volume Group '$vgname' destroyed succesfuly.\n";
   return 1;
 }
 
@@ -721,7 +721,7 @@ sub parse_volname {
 
     return ( $vtype, $name, $vmid );                   # Return type, name, and VMID
   }
-  die "Error: Invalid volume name ($volname).\n";
+  die "Error :: Invalid volume name ($volname).\n";
   return 0;
 }
 
@@ -729,14 +729,9 @@ sub filesystem_path {
   my ( $class, $scfg, $volname, $snapname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::filesystem_path\n" if $DEBUG;
 
-  die "Error: snapshot is not implemented ($snapname).\n" if defined( $snapname );
+  die "Error :: snapshot is not implemented ($snapname).\n" if defined( $snapname );
 
   my ( $path, $vmid, $vtype, $wwid ) = $class->purestorage_get_wwn( $scfg, $volname );
-
-  # print "Path: $path\n"   if $DEBUG && $path;
-  # print "VMid: $vmid\n"   if $DEBUG && $vmid;
-  # print "Vtype: $vtype\n" if $DEBUG && $vtype;
-  # print "WWN: $wwid\n"    if $DEBUG && $wwid;
 
   if ( !defined( $path ) || !defined( $vmid ) || !defined( $vtype ) ) {
     return wantarray ? ( "", "", "", "" ) : "";
@@ -748,13 +743,13 @@ sub filesystem_path {
 sub create_base {
   my ( $class, $storeid, $scfg, $volname ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::create_base\n" if $DEBUG;
-  die "Error: Creating base image is currently unimplemented.\n";
+  die "Error :: Creating base image is currently unimplemented.\n";
 }
 
 sub clone_image {
   my ( $class, $scfg, $storeid, $volname, $vmid, $snap ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::clone_image\n" if $DEBUG;
-  die "Error: Cloning image is currently unimplemented.\n";
+  die "Error :: Cloning image is currently unimplemented.\n";
 }
 
 sub find_free_diskname {
@@ -776,15 +771,15 @@ sub alloc_image {
   my $sizeB = $size * 1024;    # KB => B
 
   # Check for supported format (only 'raw' is allowed)
-  die "Error: Unsupported format ($fmt).\n" if $fmt ne 'raw';
+  die "Error :: Unsupported format ($fmt).\n" if $fmt ne 'raw';
 
   # Validate the name format, should start with 'vm-$vmid-disk'
-  die "Error: Illegal name '$name' - should be 'vm-$vmid-(disk-*|cloudinit)'.\n" if $name && $name !~ m/^vm-$vmid-(disk-|cloudinit)/;
+  die "Error :: Illegal name '$name' - should be 'vm-$vmid-(disk-*|cloudinit)'.\n" if $name && $name !~ m/^vm-$vmid-(disk-|cloudinit)/;
 
   $name = $class->find_free_diskname( $storeid, $scfg, $vmid ) if !$name;
 
   # Check size (must be between 1MB and 4PB)
-  die "Error: Invalid size '$size kb' < '1024 kb'.\n" unless $size > 1024;    # Proxmox 1MB = 1049KB
+  die "Error :: Invalid size '$size kb' < '1024 kb'.\n" unless $size > 1024;    # Proxmox 1MB = 1049KB
 
   if ( !$class->purestorage_create_volume( $scfg, $name, $sizeB, $storeid ) ) {
     warn "Error ::  Failed to create volume '$name'";
@@ -880,12 +875,12 @@ sub map_volume {
 
   eval { run_command( [ $cmd->{ "multipath" }, "-a", $wwid ] ); };
   if ( $@ ) {
-    die "Error :: Failed to run 'multipath -a $wwid'. Error: $@\n";
+    die "Error :: Failed to run 'multipath -a $wwid'. Error :: $@\n";
   }
 
   eval { run_command( [ $cmd->{ "multipathd" }, "add", "path", $path ] ); };
   if ( $@ ) {
-    die "Error :: Failed to run 'multipathd add path $path'. Error: $@\n";
+    die "Error :: Failed to run 'multipathd add path $path'. Error :: $@\n";
   }
 
   $class->purestorage_rescan_diskmap( $wwid );
@@ -926,13 +921,13 @@ sub unmap_volume {
     eval { run_command( [ $cmd->{ "blockdev" }, "--flushbufs", $path ] ) };
 
     if ( $device_path = readlink( $path ) ) {
-      print "Device path resolved to '$device_path'.\n";
+      print "Info :: Device path resolved to '$device_path'.\n";
     } else {
       die "Error :: unable to read device link.";
     }
 
     my $device_name = basename( $device_path );
-    print "Device name resolved to '$device_name'.\n";
+    print "Info :: Device name resolved to '$device_name'.\n";
 
     my $multipath_check = `$cmd->{ "multipath" } -l $path`;
     my $slaves_path     = "/sys/block/$device_name/slaves";
@@ -942,14 +937,14 @@ sub unmap_volume {
       @slaves = grep { !/^\.\.?$/ } readdir( $dh );
       closedir( $dh );
 
-      print "Disk '$device_name' slaves: \n" . Dumper( @slaves ) if $DEBUG;
+      print "Info :: Disk '$device_name' slaves: \n" . Dumper( @slaves ) if $DEBUG;
     } elsif ( $device_name =~ m|^(sd[a-z]+)$| ) {
       warn "Warning :: Disk '$device_name' has no slaves";
       push @slaves, $1;
     }
 
     if ( $multipath_check ) {
-      print "Device '$path' is a multipath device. Proceeding with multipath removal.\n";
+      print "Info :: Device '$path' is a multipath device. Proceeding with multipath removal.\n";
 
       if ( -e $wwid_file ) {
         open( my $in,  '<', $wwid_file ) or die $!;
@@ -967,12 +962,12 @@ sub unmap_volume {
       }
 
     } else {
-      print "Device '$path' is not a multipath device. Skipping multipath removal.\n";
+      print "Info :: Device '$path' is not a multipath device. Skipping multipath removal.\n";
     }
 
     # Iterate through slaves and delete each device
     foreach $slave_name ( @slaves ) {
-      print "Remove slave: $slave_name\n" if $DEBUG;
+      print "Info :: Remove slave: $slave_name\n" if $DEBUG;
       if ( $slave_name =~ m|^(sd[a-z]+)$| ) {
         $slave_name = $1;    # untaint;
         $class->purestorage_unmap_disk( $slave_name );
@@ -981,7 +976,7 @@ sub unmap_volume {
       }
     }
 
-    print "Device '$device_name' successfully removed from system.\n";
+    print "Info :: Device '$device_name' successfully removed from system.\n";
     return 1;
   }
   return 0;
@@ -1009,7 +1004,7 @@ sub deactivate_volume {
 sub volume_resize {
   my ( $class, $scfg, $storeid, $volname, $size, $running ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::volume_resize\n" if $DEBUG;
-  warn "Info :: New Size: $size\n"                                               if $DEBUG;
+  warn "Debug :: New Size: $size\n"                                               if $DEBUG;
 
   my $new_size = $class->purestorage_resize_volume( $scfg, $volname, $size ) or die "Error ::  Failed to resize volume '$volname'";
 
@@ -1019,7 +1014,7 @@ sub volume_resize {
 sub rename_volume {
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::rename_volume\n";
   my ( $class, $scfg, $storeid, $source_volname, $target_vmid, $target_volname ) = @_;
-  die "not implemented in storage plugin '$class'\n" if $class->can( 'api' ) && $class->api() < 10;
+  die "Error :: not implemented in storage plugin '$class'\n" if $class->can( 'api' ) && $class->api() < 10;
 
   my ( undef, $source_image, $source_vmid, $base_name, $base_vmid, undef, $format ) = $class->parse_volname( $source_volname );
 
