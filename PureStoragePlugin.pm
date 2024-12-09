@@ -352,7 +352,6 @@ sub purestorage_rescan_diskmap {
   eval { run_command( [ $cmd->{ "iscsiadm" },  "--mode", "session", "--rescan" ] ) };
   eval { run_command( [ $cmd->{ "multipath" }, "-W" ] ) };
   eval { run_command( [ $cmd->{ "multipath" }, "-r", $path ] ) };
-  sleep 1;
 
   return 1;
 }
@@ -534,6 +533,23 @@ sub purestorage_remove_volume {
   return 1;
 }
 
+sub purestorage_get_device_size {
+  my ( $class, $path ) = @_;
+  print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_get_device_size\n" if $DEBUG;
+  my $size = 0;
+
+  eval {
+    run_command( [ $cmd->{ "blockdev" }, "--getsize64", $path ], outfunc => sub { $size = $_[0]; } );
+  };
+  if ( $@ ) {
+    die "Error :: Cannot execute 'blockdev' command for '$path'. Error: $@\n";
+  }
+
+  print "Debug :: Detected size: $size\n" if $DEBUG;
+  chomp $size;
+  return $size;
+}
+
 sub purestorage_resize_volume {
   my ( $class, $scfg, $volname, $size ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::purestorage_resize_volume\n" if $DEBUG;
@@ -554,10 +570,30 @@ sub purestorage_resize_volume {
       . ( $response->{ content } ? "==> Message: " . Dumper( $response->{ content } ) : "" );
   }
 
-  print "Volume '$volname' in volume group '$vgname' resized successfully.\n";
+  print "Info :: Volume '$volname' in volume group '$vgname' resized successfully.\n";
   $class->purestorage_rescan_diskmap( $wwid );
 
-  return 1;
+  # Wait for the device size to update
+  my $iteration    = 0;
+  my $max_attempts = 15;    # Max iter count
+  my $interval     = 1;     # Interval for checking in seconds
+  my $new_size     = 0;
+
+  print "Debug :: Expected size = $size\n" if $DEBUG;
+
+  while ( $iteration < $max_attempts ) {
+    print "Info :: Waiting (" . $iteration . "s) for size update for volume '$volname'...\n";
+    $iteration++;
+    $new_size = $class->purestorage_get_device_size( $path );
+
+    if ( $new_size >= $size ) {
+      print "Info :: New size detected for volume '$volname': $new_size bytes.\n";
+      return $new_size;
+    }
+    sleep $interval;
+  }
+
+  die "Error :: Timeout while waiting for updated size of volume '$volname'.\n";
 }
 
 sub purestorage_rename_volume {
@@ -840,15 +876,32 @@ sub map_volume {
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::map_volume\n" if $DEBUG;
   my ( $path, undef, undef, $wwid ) = $class->filesystem_path( $scfg, $volname );
 
-  print "Mapped volume '$volname' with WWN: " . uc( $wwid ) . ".\n" if $DEBUG;
+  print "Info :: Mapped volume '$volname' with WWN: " . uc( $wwid ) . ".\n" if $DEBUG;
 
-  run_command( [ $cmd->{ "multipath" }, "-a", $wwid ] );
-  run_command( [ $cmd->{ "multipathd" }, "add", "path", $path ] );
+  eval { run_command( [ $cmd->{ "multipath" }, "-a", $wwid ] ); };
+  if ( $@ ) {
+    die "Error :: Failed to run 'multipath -a $wwid'. Error: $@\n";
+  }
+
+  eval { run_command( [ $cmd->{ "multipathd" }, "add", "path", $path ] ); };
+  if ( $@ ) {
+    die "Error :: Failed to run 'multipathd add path $path'. Error: $@\n";
+  }
 
   $class->purestorage_rescan_diskmap( $wwid );
 
-  if ( -e $path ) {
-    return 1;
+  # Wait for the device to apear
+  my $iteration    = 0;
+  my $max_attempts = 15;
+  my $interval     = 1;
+
+  while ( $iteration < $max_attempts ) {
+    print "Info :: Waiting (" . $iteration . "s) for map volume '$volname'...\n";
+    $iteration++;
+    if ( -e $path ) {
+      return 1;
+    }
+    sleep $interval;
   }
 
   warn "Warning :: Local path '$path' not exists.\n";
@@ -956,11 +1009,11 @@ sub deactivate_volume {
 sub volume_resize {
   my ( $class, $scfg, $storeid, $volname, $size, $running ) = @_;
   print "Debug :: PVE::Storage::Custom::PureStoragePlugin::sub::volume_resize\n" if $DEBUG;
-  warn "New Size: $size\n"                                                       if $DEBUG;
+  warn "Info :: New Size: $size\n"                                               if $DEBUG;
 
-  $class->purestorage_resize_volume( $scfg, $volname, $size ) or die "Error ::  Failed to resize volume '$volname'";
+  my $new_size = $class->purestorage_resize_volume( $scfg, $volname, $size ) or die "Error ::  Failed to resize volume '$volname'";
 
-  return undef;
+  return $new_size;
 }
 
 sub rename_volume {
