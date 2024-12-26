@@ -708,7 +708,7 @@ sub purestorage_snap_volume_rollback {
   }
 
   print "Info :: Volume \"$vgname/$volname\" snapshot \"$snap_name\" restored.\n";
-  return 1;
+  return $volname;
 }
 
 sub purestorage_snap_volume_delete {
@@ -1148,11 +1148,11 @@ sub volume_has_feature {
 
   my $features = {
     copy     => { base    => 1, current => 1, snap => 1 },    # full clone is possible
-    clone    => { base    => 1, snap    => 1 },               # linked clone is possible
-    snapshot => { current => 1 },    # taking a snapshot is possible
-    template => { current => 1 },    # conversion to base image is possible
-                                     # sparseinit => { base    => 1, current => 1 },               # volume is sparsely initialized (thin provisioning)
-    rename   => { current => 1 },    # renaming volumes is possible
+    clone    => { snap    => 1 },                             # linked clone is possible
+    snapshot => { current => 1 },                             # taking a snapshot is possible
+                                                              # template => { current => 1 }, # conversion to base image is possible
+                                                              # sparseinit => { base => 1, current => 1 }, # volume is sparsely initialized (thin provisioning)
+    rename   => { current => 1 },                             # renaming volumes is possible
   };
   my ( $vtype, $name, $vmid, $basename, $basevmid, $isBase ) = $class->parse_volname( $volname );
   my $key = undef;
